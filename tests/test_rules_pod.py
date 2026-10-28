@@ -223,6 +223,31 @@ def test_current_api_version_is_clean():
     assert "KG024" not in ids(pod(CONTAINER))
 
 
+def test_recommended_labels_on_metadata_also_count():
+    """Charts often put the labels on metadata, not on the pod template.
+
+    Both are the same intent; reporting "missing" when they are three lines
+    above is how a scanner gets muted.
+    """
+    text = (
+        "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\n  labels:\n"
+        "    app.kubernetes.io/name: web\n    app.kubernetes.io/part-of: shop\nspec:\n"
+        "  template:\n    metadata:\n      labels:\n        app: web\n    spec:\n" + CONTAINER
+    )
+    assert "KG025" not in ids(text)
+
+
+def test_summary_agrees_with_kg007_on_pod_level_hardening():
+    text = pod("  securityContext:\n    runAsNonRoot: true\n" + CONTAINER)
+    report = scan_text(text)
+    assert "KG007" not in rule_ids_of(report)
+    assert report.summary.runs_as_root == 0
+
+
+def rule_ids_of(report) -> set[str]:
+    return {f.rule.id for f in report.findings}
+
+
 def test_recommended_labels():
     text = "apiVersion: v1\nkind: Pod\nmetadata:\n  name: p\n  labels:\n    app.kubernetes.io/name: p\n    app.kubernetes.io/part-of: shop\nspec:\n" + CONTAINER
     assert "KG025" not in ids(text)

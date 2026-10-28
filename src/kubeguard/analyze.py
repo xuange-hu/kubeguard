@@ -30,6 +30,7 @@ from .manifest import (
     is_map,
     item_line,
     key_line,
+    labels_of,
     load_manifest_set,
     matches_selector,
     node_line,
@@ -263,8 +264,11 @@ def _check_workload(ctx: _Ctx, resource: Resource, pod_spec: Any) -> None:
             f"apiVersion {resource.api_version} 已废弃，应迁移到 {replacement}",
         )
 
-    # recommended labels, on the template (what selectors actually read)
-    labels = template_labels_of(resource)
+    # Recommended labels: honour either location. They belong on the template
+    # (that is what selectors read), but plenty of charts put them on metadata —
+    # reporting "missing" when they are three lines above is pure noise.
+    labels = dict(labels_of(resource))
+    labels.update(template_labels_of(resource))
     missing = [name for name in RECOMMENDED_LABELS if name not in labels]
     if missing:
         ctx.emit("KG025", resource.line, "缺少推荐标签：" + ", ".join(missing))
@@ -577,11 +581,14 @@ def _summary(manifest: ManifestSet) -> ManifestSummary:
             summary.containers += 1
             if container.image and container.image not in images:
                 images.append(container.image)
-            non_root = container.body.get("securityContext")
-            run_as = dig(non_root, "runAsNonRoot") if is_map(non_root) else None
-            uid = dig(non_root, "runAsUser") if is_map(non_root) else None
-            uid_int = uid if isinstance(uid, int) else (int(sval(uid)) if sval(uid).isdigit() else None)
-            if not _is_true(run_as) and not (isinstance(uid_int, int) and uid_int > 0):
+            # the summary must agree with KG007, so it uses the same two-level
+            # merge instead of reading the container block only
+            non_root, _ = _sc_value(container, pod_spec, "runAsNonRoot")
+            uid_value, _ = _sc_value(container, pod_spec, "runAsUser")
+            uid_int = uid_value if isinstance(uid_value, int) else (
+                int(sval(uid_value)) if sval(uid_value).isdigit() else None
+            )
+            if not _is_true(non_root) and not (isinstance(uid_int, int) and uid_int > 0):
                 root += 1
     summary.resources = len(manifest.resources)
     summary.images = images
