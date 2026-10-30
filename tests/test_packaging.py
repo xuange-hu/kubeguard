@@ -3,6 +3,11 @@
 The console scripts are the only thing a user touches, so the modules they point
 at must import with base dependencies alone. CI installs ``.[all]`` and would
 therefore never notice an optional import leaking into a required path.
+
+On Python 3.10 ``tomllib`` does not exist, so the reader falls back to
+``tests/_pytoml.py`` instead of skipping: a guard that quietly switches itself
+off is worse than no guard. ``tests/test_pytoml_parity.py`` diffs the fallback
+against the real parser on 3.11+.
 """
 
 from __future__ import annotations
@@ -10,7 +15,13 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python <= 3.10: tomllib landed in 3.11
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import _pytoml as tomllib  # type: ignore[no-redef]
 
 ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT = ROOT / "pyproject.toml"

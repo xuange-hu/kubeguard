@@ -122,7 +122,9 @@ jobs:
       - name: SARIF output is valid
         run: |
           kubeguard scan demo-workspace --format sarif --output results.sarif
-          python -c "import json; d=json.load(open('results.sarif')); assert d['version']=='2.1.0' and d['runs'][0]['results']; print('sarif ok')"
+          # encoding is explicit: on the Windows runner open() defaults to
+          # cp1252 and the SARIF carries non-ASCII rule text
+          python -c "import json; d=json.load(open('results.sarif', encoding='utf-8')); assert d['version']=='2.1.0' and d['runs'][0]['results']; print('sarif ok')"
 
       - name: MCP manifest
         run: |
