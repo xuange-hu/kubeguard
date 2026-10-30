@@ -15,6 +15,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 try:
     import tomllib
 except ModuleNotFoundError:  # Python <= 3.10: tomllib landed in 3.11
@@ -90,6 +92,23 @@ def test_console_script_modules_only_import_declared_packages():
     assert offenders == []
 
 
+def _every_test_module_can_run() -> bool:
+    """The badge number is only meaningful where nothing skips itself.
+
+    tests/test_pytoml_parity.py diffs the fallback parser against tomllib and
+    skips on Python 3.10, so that leg collects 194 while a 3.11+ leg collects
+    199. Comparing the badge there failed on every 3.10 run with no actual
+    drift. Enforcement lives in the badge job, which runs on 3.12.
+    """
+    import importlib.util
+
+    return importlib.util.find_spec("tomllib") is not None
+
+
+@pytest.mark.skipif(
+    not _every_test_module_can_run(),
+    reason="badge count is validated on 3.11+, where the parity suite runs",
+)
 def test_readme_badge_matches_the_test_count():
     """The badge is the first number a visitor reads; it must not drift."""
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
