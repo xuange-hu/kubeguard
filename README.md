@@ -1,5 +1,7 @@
 # kubeguard
 
+[中文说明 / Chinese README](README_CN.md)
+
 [![CI](https://github.com/xuange-hu/kubeguard/actions/workflows/ci.yml/badge.svg)](https://github.com/xuange-hu/kubeguard/actions/workflows/ci.yml)
 [![tests](https://img.shields.io/badge/tests-199%20passing-brightgreen.svg)](tests/)
 [![rules](https://img.shields.io/badge/rules-37-red.svg)](#rule-map)
