@@ -3,7 +3,7 @@
 [中文说明 / Chinese README](README_CN.md)
 
 [![CI](https://github.com/xuange-hu/kubeguard/actions/workflows/ci.yml/badge.svg)](https://github.com/xuange-hu/kubeguard/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-201%20passing-brightgreen.svg)](tests/)
+[![tests](https://img.shields.io/badge/tests-202%20passing-brightgreen.svg)](tests/)
 [![rules](https://img.shields.io/badge/rules-37-red.svg)](#rule-map)
 [![python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)](pyproject.toml)

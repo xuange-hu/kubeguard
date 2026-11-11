@@ -1,4 +1,4 @@
-"""MCP server: five tools over the same engine the CLI uses.
+"""MCP server: six tools over the same engine the CLI uses.
 
 The tools take manifest *text*, not paths — an agent usually has the file open
 already, and a server that reads arbitrary paths from an LLM prompt is a
@@ -37,6 +37,11 @@ TOOLS = [
         "name": "kubeguard_demo",
         "description": "Write a deliberately vulnerable sample manifest and audit it, as a self-check that the rules fire.",
         "input": {"directory": "str (optional, default kubeguard-demo)"},
+    },
+    {
+        "name": "kubeguard_graph",
+        "description": "Cross-resource relationship view: which workload mounts which ConfigMap, which Service fronts which workload, rendered as a text graph.",
+        "input": {"path": "str (file or directory, default .)"},
     },
 ]
 
@@ -98,6 +103,23 @@ def _demo(directory: str) -> dict[str, Any]:
     return scan_text(content, path=path).to_dict()
 
 
+def _graph(path: str) -> dict[str, Any]:
+    from .analyze import Options, scan_files
+    from .manifest import load_manifest_set
+    from .render import render_graph
+
+    paths = [path] if path else ["."]
+    report = scan_files(paths, Options(min_severity="critical"))
+    resources = []
+    for candidate in paths:
+        resources.extend(load_manifest_set(candidate).resources)
+    return {
+        "path": paths[0],
+        "resources": len(resources),
+        "graph": render_graph(report, resources, color=False),
+    }
+
+
 def build_server():
     """Build the MCP server. Requires the optional ``mcp`` extra."""
     try:
@@ -131,6 +153,11 @@ def build_server():
     def kubeguard_demo(directory: str = "kubeguard-demo") -> dict:
         """Write a vulnerable sample manifest and audit it."""
         return _demo(directory)
+
+    @server.tool()
+    def kubeguard_graph(path: str = ".") -> dict:
+        """Cross-resource relationship view rendered as a text graph."""
+        return _graph(path)
 
     return server
 
