@@ -19,6 +19,22 @@ kubeguard demo && kubeguard scan ./kubeguard-demo
 
 ---
 
+## Contents
+
+- [The one thing it does that nothing else does](#the-one-thing-it-does-that-nothing-else-does)
+- [Quick start (3 steps)](#quick-start-3-steps)
+- [Output](#output)
+- [Commands](#commands)
+- [CI](#ci)
+- [Suppression](#suppression)
+- [MCP server](#mcp-server)
+- [为什么还要做一个](#为什么还要做一个)
+- [三步跑通](#三步跑通)
+- [设计取舍](#设计取舍)
+- [Rule map](#rule-map)
+- [已知边界](#已知边界)
+- [许可证](#许可证)
+
 ## The one thing it does that nothing else does
 
 Kubernetes' default is **allow all**, and most of its worst failures live in the
