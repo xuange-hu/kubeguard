@@ -8,7 +8,7 @@
 git clone https://github.com/xuange-hu/kubeguard
 cd kubeguard
 pip install -e ".[mcp]" pytest ruff
-pytest                 # 199 tests
+pytest                 # 201 tests
 ruff check src tests
 ```
 
