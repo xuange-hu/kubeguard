@@ -1,5 +1,10 @@
 # kubeguard · 中文说明
 
+[![tests](https://img.shields.io/badge/tests-202-brightgreen)](https://github.com/xuange-hu/kubeguard/actions)
+[![python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![deps](https://img.shields.io/badge/runtime%20dependencies-0-brightgreen)](https://github.com/xuange-hu/kubeguard/blob/main/pyproject.toml)
+
 [English README](README.md) · Kubernetes 清单的零依赖静态审计器。
 
 **一句话**：单看一个 YAML 看不出的风险，第三遍扫描才看得出来——安全组对外开放，
