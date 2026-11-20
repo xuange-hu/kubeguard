@@ -332,6 +332,7 @@ class _Parser:
                     item = self.parse_map(child_indent)
                 else:
                     item = self._value(rest.strip(), line)
+                    out.append(item)
                     out.ilines[idx] = line
                     out.line = out.line or line
                     idx += 1

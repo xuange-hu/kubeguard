@@ -142,3 +142,18 @@ def test_flow_collection_spans_continuation_lines():
 def test_tabs_are_normalised():
     doc = loads("spec:\n\tx: 1\n")
     assert doc["spec"]["x"] == 1
+
+
+
+def test_block_sequence_of_plain_scalars_is_kept():
+    """CRITICAL regression: `- get` style items must not be dropped.
+
+    RBAC verbs/actions are written as indented plain-scalar sequences — the
+    single most common shape. A previous version recorded line numbers for
+    these items but never appended them, yielding an empty list and silently
+    disabling every rule that reads verbs/actions.
+    """
+    doc = loads("verbs:\n  - get\n  - list\n  - watch\n")
+    assert list(doc["verbs"]) == ["get", "list", "watch"]
+    doc2 = loads("resources:\n  - pods\n  - secrets\n")
+    assert list(doc2["resources"]) == ["pods", "secrets"]
