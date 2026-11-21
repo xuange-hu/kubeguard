@@ -151,6 +151,11 @@ class Report:
 
     @property
     def grade(self) -> str:
+        # 有文件没解析成功时，"干净"这个结论本身没有资格成立：
+        # 我们只看到了输入的一部分。此时给 INCOMPLETE 而不是 CLEAN，
+        # 否则未渲染的 Helm 模板 / 坏 YAML 会被读成"零风险"。
+        if self.summary.errors:
+            return "INCOMPLETE"
         r = self.risk
         if r >= 80:
             return "CRITICAL RISK"

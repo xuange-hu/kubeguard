@@ -61,14 +61,26 @@ def test_version_flag():
 
 
 def test_scan_reports_findings(manifest_file):
-    code, out = run(["scan", manifest_file, "--no-color"])
+    code, out = run(["scan", manifest_file, "--no-color", "--fail-on", "none"])
     assert code == 0
     assert "KG001" in out
     assert "Privileged container" in out
 
 
-def test_scan_defaults_to_exit_zero(manifest_file):
-    code, _ = run(["scan", manifest_file, "--no-color"])
+def test_scan_defaults_to_the_gate_being_on(manifest_file):
+    """默认值必须让门禁存在。
+
+    旧默认是 `none`：扫出 2 个 critical 仍退 0，README 却把"能进 CI"
+    当卖点。夹具清单里有 privileged 容器（KG001，critical），
+    所以默认调用必须退 1；想只要报告不要门禁，得显式写 `--fail-on none`。
+    """
+    code, out = run(["scan", manifest_file, "--no-color"])
+    assert "KG001" in out
+    assert code == 1, "默认 --fail-on 必须生效，否则 CI 门禁是装饰"
+
+
+def test_fail_on_none_opts_out_of_the_gate(manifest_file):
+    code, _ = run(["scan", manifest_file, "--no-color", "--fail-on", "none"])
     assert code == 0
 
 
@@ -93,7 +105,7 @@ def test_missing_path_exits_two():
 
 
 def test_json_format_is_parseable(manifest_file):
-    code, out = run(["scan", manifest_file, "--no-color", "--format", "json"])
+    code, out = run(["scan", manifest_file, "--no-color", "--format", "json", "--fail-on", "none"])
     assert code == 0
     payload = json.loads(out)
     assert payload["tool"] == "kubeguard"
@@ -110,7 +122,7 @@ def test_sarif_format_is_parseable(manifest_file):
 
 
 def test_min_severity_filters(manifest_file):
-    _, all_out = run(["scan", manifest_file, "--no-color"])
+    _, all_out = run(["scan", manifest_file, "--no-color", "--fail-on", "none"])
     _, critical_out = run(["scan", manifest_file, "--no-color", "--min-severity", "critical"])
     assert "KG001" in critical_out
     assert critical_out.count("KG") < all_out.count("KG")
@@ -129,7 +141,7 @@ def test_ignore_multiple(manifest_file):
 
 def test_output_writes_to_file(manifest_file, tmp_path):
     target = tmp_path / "out" / "report.json"
-    code, _ = run(["scan", manifest_file, "--no-color", "--format", "json", "--output", str(target)])
+    code, _ = run(["scan", manifest_file, "--no-color", "--format", "json", "--output", str(target), "--fail-on", "none"])
     assert code == 0
     assert json.loads(target.read_text(encoding="utf-8"))["tool"] == "kubeguard"
 
@@ -150,7 +162,7 @@ def test_rules_json():
 def test_scan_a_directory(tmp_path):
     (tmp_path / "a.yaml").write_text(MANIFEST, encoding="utf-8")
     (tmp_path / "b.yaml").write_text("apiVersion: v1\nkind: Service\nmetadata:\n  name: s\nspec:\n  selector:\n    app: x\n", encoding="utf-8")
-    code, out = run(["scan", str(tmp_path), "--no-color"])
+    code, out = run(["scan", str(tmp_path), "--no-color", "--fail-on", "none"])
     assert code == 0
     assert "KG001" in out
     assert "KG041" in out
@@ -159,7 +171,7 @@ def test_scan_a_directory(tmp_path):
 def test_scan_multiple_paths(manifest_file, tmp_path):
     other = tmp_path / "b.yaml"
     other.write_text("apiVersion: v1\nkind: Pod\nmetadata:\n  name: q\nspec:\n  containers:\n    - name: c\n      image: n:1\n", encoding="utf-8")
-    code, out = run(["scan", manifest_file, str(other), "--no-color"])
+    code, out = run(["scan", manifest_file, str(other), "--no-color", "--fail-on", "none"])
     assert code == 0
     assert out.count("KG001") >= 1
 
@@ -167,7 +179,7 @@ def test_scan_multiple_paths(manifest_file, tmp_path):
 def test_scan_default_path_is_cwd(tmp_path, monkeypatch):
     (tmp_path / "pod.yaml").write_text(MANIFEST, encoding="utf-8")
     monkeypatch.chdir(tmp_path)
-    code, out = run(["scan", "--no-color"])
+    code, out = run(["scan", "--no-color", "--fail-on", "none"])
     assert code == 0
     assert "KG001" in out
 
@@ -224,7 +236,7 @@ def test_demo_command(tmp_path):
 
 def test_no_color_environment_variable(manifest_file, monkeypatch):
     monkeypatch.setenv("NO_COLOR", "1")
-    code, out = run(["scan", manifest_file])
+    code, out = run(["scan", manifest_file, "--fail-on", "none"])
     assert code == 0
     assert "\033[" not in out
 
@@ -243,6 +255,6 @@ def test_unknown_severity_is_rejected(manifest_file):
 
 
 def test_scan_text_output_has_file_and_line(manifest_file):
-    _, out = run(["scan", manifest_file, "--no-color"])
+    _, out = run(["scan", manifest_file, "--no-color", "--fail-on", "none"])
     assert os.path.basename(manifest_file) in out
     assert ":8" in out or ":9" in out

@@ -149,7 +149,7 @@ def _flow_scalar(token: str) -> Any:
         return False
     if len(token) >= 2 and token[0] == token[-1] and token[0] in "\"'":
         return _unquote(token)
-    if token.startswith(("[", "{")):
+    if token.startswith(("[", "{")) and not (token.startswith("{{") and token.endswith("}}")):
         return _flow(token)
     try:
         return int(token)
@@ -297,7 +297,7 @@ class _Parser:
             elif rest:
                 out[key] = self._value(rest, line)
             else:
-                child = self._child(indent)
+                child = self._child(indent, allow_same_indent_seq=True)
                 out[key] = child if child is not None else None
             out.klines[key] = line
             out.line = out.line or line
@@ -343,15 +343,25 @@ class _Parser:
             idx += 1
         return out
 
-    def _child(self, parent_indent: int) -> Any:
+    def _child(self, parent_indent: int, allow_same_indent_seq: bool = False) -> Any:
         """Parse the block nested under a ``key:`` line."""
         cur = self._cur()
         if cur is None:
             return None
         ind, content = cur
-        if ind <= parent_indent:
+        is_seq = content == "-" or content.startswith("- ")
+        if ind < parent_indent:
             return None
-        if content == "-" or content.startswith("- "):
+        if ind == parent_indent:
+            # YAML 允许块序列与父键同缩进（kubectl 手写清单最常见的写法）：
+            #     containers:
+            #     - name: app
+            # 这里只对 `key:` 的取值位置开放；`-` 项自身的子节点仍必须比
+            # `-` 更深，否则会把兄弟项误当成子序列嵌套进去。
+            if allow_same_indent_seq and is_seq:
+                return self.parse_seq(ind)
+            return None
+        if is_seq:
             return self.parse_seq(ind)
         if _split_key(content) is not None:
             return self.parse_map(ind)
@@ -370,7 +380,12 @@ class _Parser:
 
     def _value(self, rest: str, line: int) -> Any:
         rest = _strip_comment(rest).strip()
-        if rest.startswith(("[", "{")):
+        # `{{ ... }}` 是模板表达式，不是 flow mapping。
+        # 走 flow 分支会把它解析成空 dict，`name: {{ .Release.Name }}`
+        # 于是变成 `name: {}` —— 名字消失、按名字关联的跨资源规则
+        # （RBAC 绑定、NetworkPolicy 选择器）也跟着失明。
+        is_template_expr = rest.startswith("{{") and rest.endswith("}}")
+        if rest.startswith(("[", "{")) and not is_template_expr:
             # flow collection: support nested brackets across continuation lines
             buf = rest
             while buf.count("[") != buf.count("]") or buf.count("{") != buf.count("}"):
@@ -446,6 +461,17 @@ def load_documents(text: str) -> list[Any]:
         chunk = lines[start:end]
         if not any(line.strip() for line in chunk):
             continue
+        for offset, raw in enumerate(chunk):
+            # 未渲染的 Helm 模板必须在解析前拦下。
+            # 像 `{{- if .Values.x }}` 这样独占一行的控制块会让后面的
+            # `apiVersion:` 落到裸标量文档里，整份文件变成 0 个资源，
+            # 报告却是 "0 workloads · risk 0/100 CLEAN"、退出码 0 ——
+            # 一个装 privileged 容器的清单被判干净，比报错危险得多。
+            if raw.strip().startswith("{{"):
+                raise YamlError(
+                    f"line {start + offset + 1}: 未渲染的 Helm 模板（{{{{ ... }}}}）；"
+                    "请先 `helm template <release> <chart>` 再扫描输出"
+                )
         docs.append(_Parser(chunk, offset=start).parse_document())
     return docs or [M()]
 

@@ -3,7 +3,7 @@
 [中文说明 / Chinese README](README_CN.md)
 
 [![CI](https://github.com/xuange-hu/kubeguard/actions/workflows/ci.yml/badge.svg)](https://github.com/xuange-hu/kubeguard/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-203%20passing-brightgreen.svg)](tests/)
+[![tests](https://img.shields.io/badge/tests-212%20passing-brightgreen.svg)](tests/)
 [![rules](https://img.shields.io/badge/rules-37-red.svg)](#rule-map)
 [![python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)](pyproject.toml)
@@ -111,7 +111,10 @@ risk 100/100  CRITICAL RISK
 | `kubeguard graph PATH` | the cross-resource view: labels, selectors, policies |
 | `kubeguard demo` | write a deliberately broken manifest and audit it |
 
-Exit codes: `0` clean · `1` findings at/above `--fail-on` · `2` the scan failed.
+Exit codes: `0` clean · `1` findings at/above `--fail-on` · `2` the scan failed
+(`--fail-on` defaults to `high`; `--fail-on none` opts out). A file we could not
+parse — including an unrendered Helm template — always exits `2` and is graded
+`INCOMPLETE`, never `CLEAN`: a partial scan is not a clean scan.
 
 ## CI
 

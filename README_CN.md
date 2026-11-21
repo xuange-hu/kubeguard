@@ -1,6 +1,6 @@
 # kubeguard · 中文说明
 
-[![tests](https://img.shields.io/badge/tests-203-brightgreen)](https://github.com/xuange-hu/kubeguard/actions)
+[![tests](https://img.shields.io/badge/tests-212-brightgreen)](https://github.com/xuange-hu/kubeguard/actions)
 [![python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![deps](https://img.shields.io/badge/runtime%20dependencies-0-brightgreen)](https://github.com/xuange-hu/kubeguard/blob/main/pyproject.toml)

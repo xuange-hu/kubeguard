@@ -87,7 +87,11 @@ def render_report(report: Report, color: bool = True, show_fix: bool = True) -> 
     lines: list[str] = []
     findings = report.findings
     if not findings:
-        lines.append(_paint("kubeguard: no findings.", _BOLD, color))
+        if report.summary.errors:
+            # 零 finding 不等于零风险：输入根本没读全。
+            lines.append(_paint("kubeguard: scan incomplete — 没有结论，不是没有问题。", _BOLD, color))
+        else:
+            lines.append(_paint("kubeguard: no findings.", _BOLD, color))
         lines.append(_render_footer(report, color))
         return "\n".join(lines)
 
@@ -133,6 +137,7 @@ def _render_footer(report: Report, color: bool) -> str:
         "MEDIUM RISK": "\033[1;33m",
         "LOW RISK": "\033[36m",
         "CLEAN": "\033[1;32m",
+        "INCOMPLETE": "\033[1;33m",
     }[report.grade]
     lines = [head, _paint(verdict, painted, color)]
     if summary.errors:

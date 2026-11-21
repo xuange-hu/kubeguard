@@ -157,3 +157,4 @@ def test_block_sequence_of_plain_scalars_is_kept():
     assert list(doc["verbs"]) == ["get", "list", "watch"]
     doc2 = loads("resources:\n  - pods\n  - secrets\n")
     assert list(doc2["resources"]) == ["pods", "secrets"]
+

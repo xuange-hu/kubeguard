@@ -53,7 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("paths", nargs="*", default=["."], help="manifest file or directory (default: .)")
     scan.add_argument("--format", choices=("text", "json", "sarif"), default="text")
     scan.add_argument("--min-severity", default="info", choices=SEVERITY_ORDER, help="hide findings below this level")
-    scan.add_argument("--fail-on", default="none", choices=("none", *SEVERITY_ORDER), help="exit 1 when a finding reaches this level")
+    scan.add_argument("--fail-on", default="high", choices=("none", *SEVERITY_ORDER), help="exit 1 when a finding reaches this level (default: high; 'none' disables the gate)")
     scan.add_argument("--ignore", default="", help="comma-separated rule ids to skip, e.g. KG016,KG025")
     scan.add_argument("--output", default="", help="write the report to a file instead of stdout")
 
@@ -106,6 +106,11 @@ def cmd_scan(args: argparse.Namespace) -> int:
         floor = SEVERITY_ORDER.index(parse_severity(args.fail_on))
         if any(f.rule.severity_rank >= floor for f in report.findings):
             return EXIT_FINDINGS
+    # "扫不完整" 与 "扫完很干净" 是两句话。任何文件解析失败都说明结论
+    # 不覆盖全部输入：此时无论有没有 finding，都必须以 2 退出，
+    # 否则 CI 会把"未渲染的 Helm 模板 / 坏 YAML"当成通过。
+    if report.summary.errors:
+        return EXIT_ERROR
     return EXIT_OK
 
 
